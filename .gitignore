@@ -1,0 +1,72 @@
+# === Rust ===
+/target/
+**/target/
+
+# === Environment ===
+.env
+.env.local
+.env.*.local
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# === Rust AI-Specific ===
+# Model weights (too large for Git)
+*.gguf
+*.ggml
+*.bin
+*.safetensors
+models/
+!models/.gitkeep
+
+# Vector databases
+*.db
+*.sqlite
+*.qdrant
+chroma_data/
+qdrant_storage/
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
+*.so
+*.dylib
+*.dll
+
+# === Testing ===
+coverage/
+*.profraw
+*.profdata
+*.lcov
+
+# === Secrets ===
+secrets/
+*.pem
+*.key
+*.crt
+
+# === Documentation ===
+docs/book/
+target/doc/
+
+# === Tauri ===
+src-tauri/target/
+src-tauri/**/*.log
+
+# === Node (Desktop UI) ===
+apps/desktop-ui/node_modules/
+apps/desktop-ui/dist/
+apps/desktop-ui/.vite/
+
+# === OS ===
+Thumbs.db
+.DS_Store
