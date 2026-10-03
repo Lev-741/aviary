@@ -1,0 +1,9 @@
+target
+**/target
+.git
+.env
+*.db
+*.db-*
+apps
+crates/desktop/gen
+**/node_modules

@@ -1,0 +1,66 @@
+name: aviary
+
+x-aviary: &aviary
+  build: .
+  image: aviary:latest
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    COLIBRI_BASE_URL: http://colibri:8000/v1
+    DATABASE_URL: sqlite:///data/aviary.db
+  volumes:
+    - aviary-data:/data
+  depends_on:
+    colibri:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  colibri:
+    build:
+      context: https://github.com/JustVugg/colibri.git
+      dockerfile: docker/Dockerfile.slim
+    image: colibri:local
+    command:
+      - serve
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --model-id
+      - ${COLIBRI_MODEL:-glm-5.2-colibri}
+      - --kv-slots
+      - ${COLIBRI_KV_SLOTS:-2}
+    environment:
+      COLI_API_KEY: ${COLIBRI_API_KEY:-}
+    volumes:
+      - ${COLIBRI_MODEL_DIR:?set COLIBRI_MODEL_DIR to the converted model directory}:/model
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30m
+    restart: unless-stopped
+
+  telegram:
+    <<: *aviary
+    command: ["aviary-telegram"]
+
+  discord:
+    <<: *aviary
+    command: ["aviary-discord"]
+
+  cli:
+    <<: *aviary
+    command: ["aviary", "chat"]
+    stdin_open: true
+    tty: true
+    restart: "no"
+    profiles: ["cli"]
+
+volumes:
+  aviary-data:
