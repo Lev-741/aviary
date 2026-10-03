@@ -61,6 +61,7 @@ target/doc/
 # === Tauri ===
 src-tauri/target/
 src-tauri/**/*.log
+crates/desktop/gen/
 
 # === Node (Desktop UI) ===
 apps/desktop-ui/node_modules/
