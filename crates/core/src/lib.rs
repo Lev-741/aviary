@@ -14,7 +14,7 @@ pub use cache::{CacheStats, ExpertCache, SlotLease};
 pub use colibri::ColibriClient;
 pub use config::ColibriConfig;
 pub use error::{Error, Result};
-pub use memory::Memory;
+pub use memory::{Conversation, Memory};
 pub use prompt::{ModelFamily, ModelProfile, PromptBuilder};
 pub use telemetry::{ColibriStatus, Health, RoutingStats, StreamingState};
 pub use tools::{Tool, ToolRegistry, ToolSettings};

@@ -378,13 +378,14 @@ impl ColibriStatus {
             Some(_) => StreamingState::Idle,
             None => StreamingState::Unknown,
         };
-        let experts_on_disk = routing
-            .map(|r| r.residency.disk)
-            .or_else(|| health.tiers.as_ref().map(|t| t.disk))
+        let tiers = health.tiers.as_ref().filter(|t| t.total() > 0);
+        let experts_on_disk = tiers
+            .map(|t| t.disk)
+            .or_else(|| routing.map(|r| r.residency.disk))
             .unwrap_or(0);
-        let disk_ratio = routing
-            .map(|r| ratio(r.residency.disk, r.residency.total()))
-            .or_else(|| health.tiers.as_ref().map(Tiers::disk_ratio))
+        let disk_ratio = tiers
+            .map(Tiers::disk_ratio)
+            .or_else(|| routing.map(|r| ratio(r.residency.disk, r.residency.total())))
             .unwrap_or(0.0);
         let nvme = NvmeStatus {
             experts_on_disk,

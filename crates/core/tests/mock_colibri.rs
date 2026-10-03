@@ -506,7 +506,8 @@ async fn status_combines_health_experts_and_profile() {
     assert_eq!(routing.served_from_memory, 1);
     assert_eq!(routing.streamed_from_disk, 2);
 
-    assert_eq!(status.nvme.experts_on_disk, 7);
+    assert_eq!(status.nvme.experts_on_disk, 6);
+    assert_eq!(status.nvme.disk_ratio, 0.75);
     assert_eq!(status.nvme.last_turn_disk_s, 8.0);
     assert_eq!(status.nvme.last_turn_io_wait_share, 0.25);
     assert_eq!(status.nvme.last_turn_streamed_experts, 2);

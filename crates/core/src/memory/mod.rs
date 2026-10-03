@@ -29,6 +29,14 @@ pub struct StoredMessage {
     pub created_at: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Conversation {
+    pub id: String,
+    pub title: String,
+    pub last_message: String,
+    pub updated_at: i64,
+}
+
 #[derive(Debug, Clone)]
 pub struct Memory {
     pool: SqlitePool,
@@ -146,6 +154,40 @@ impl Memory {
         Ok(rows.into_iter().map(|r| r.get("user_id")).collect())
     }
 
+    pub async fn conversations(&self, prefix: &str) -> Result<Vec<Conversation>> {
+        let pattern = format!(
+            "{}%",
+            prefix
+                .replace('\\', "\\\\")
+                .replace('%', "\\%")
+                .replace('_', "\\_")
+        );
+        let rows = sqlx::query(
+            "SELECT m.user_id AS id, \
+                    (SELECT content FROM messages f WHERE f.user_id = m.user_id AND f.role = 'user' \
+                     ORDER BY f.id ASC LIMIT 1) AS title, \
+                    (SELECT content FROM messages l WHERE l.user_id = m.user_id \
+                     ORDER BY l.id DESC LIMIT 1) AS last_message, \
+                    MAX(m.created_at) AS updated_at \
+             FROM messages m WHERE m.user_id LIKE ? ESCAPE '\\' \
+             GROUP BY m.user_id ORDER BY MAX(m.id) DESC",
+        )
+        .bind(pattern)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| Conversation {
+                id: row.get("id"),
+                title: row.get::<Option<String>, _>("title").unwrap_or_default(),
+                last_message: row
+                    .get::<Option<String>, _>("last_message")
+                    .unwrap_or_default(),
+                updated_at: row.get("updated_at"),
+            })
+            .collect())
+    }
+
     pub async fn close(&self) {
         self.pool.close().await;
     }
@@ -202,6 +244,30 @@ mod tests {
         assert_eq!(memory.clear("a").await.unwrap(), 2);
         assert!(memory.recent("a").await.unwrap().is_empty());
         assert_eq!(memory.recent("b").await.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn lists_conversations_by_prefix_newest_first() {
+        let memory = Memory::in_memory().await.unwrap();
+        memory
+            .append_turn("desktop:1", "first chat", "a")
+            .await
+            .unwrap();
+        memory.append_turn("tg:9", "telegram", "b").await.unwrap();
+        memory
+            .append_turn("desktop:2", "second chat", "c")
+            .await
+            .unwrap();
+        memory
+            .append_turn("desktop:1", "follow up", "d")
+            .await
+            .unwrap();
+
+        let list = memory.conversations("desktop:").await.unwrap();
+        let ids: Vec<_> = list.iter().map(|c| c.id.as_str()).collect();
+        assert_eq!(ids, vec!["desktop:1", "desktop:2"]);
+        assert_eq!(list[0].title, "first chat");
+        assert_eq!(list[0].last_message, "d");
     }
 
     #[tokio::test]
