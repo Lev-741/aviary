@@ -419,6 +419,66 @@ impl ColibriStatus {
     pub fn kv_slots(&self) -> Option<usize> {
         self.health.as_ref().and_then(|h| h.kv_slots)
     }
+
+    pub fn summary(&self) -> String {
+        if !self.reachable {
+            return format!(
+                "Colibri is offline ({}): {}",
+                self.base_url,
+                self.error.as_deref().unwrap_or("no response")
+            );
+        }
+        let state = match self.state {
+            StreamingState::Idle => "idle",
+            StreamingState::Generating => "generating",
+            StreamingState::Queued => "queued",
+            StreamingState::Unknown => "online",
+        };
+        let mut lines = vec![format!("Colibri {state}, model {}", self.configured_model)];
+        let health = self.health.as_ref();
+        if let Some(hw) = health.and_then(|h| h.hwinfo.as_ref()) {
+            lines.push(format!(
+                "RAM {:.1} of {:.1} GB used, {} cores{}",
+                hw.ram_used_gb(),
+                hw.ram_total_gb,
+                hw.cores,
+                if hw.gpus > 0 {
+                    format!(", VRAM {:.1} GB", hw.vram_total_gb)
+                } else {
+                    String::new()
+                }
+            ));
+        }
+        if let Some(tiers) = health.and_then(|h| h.tiers.as_ref()) {
+            lines.push(format!(
+                "Experts: {} VRAM, {} RAM, {} on NVMe ({:.0}% streamed)",
+                tiers.vram,
+                tiers.ram,
+                tiers.disk,
+                self.nvme.disk_ratio * 100.0
+            ));
+        }
+        if let Some(turn) = &self.last_turn {
+            let speed = turn
+                .decode_tokens_per_sec()
+                .map(|t| format!("{t:.2} tok/s"))
+                .unwrap_or_else(|| "-".into());
+            lines.push(format!(
+                "Last turn: {speed}, {:.0}% of the time waiting on NVMe",
+                turn.io_wait_share() * 100.0
+            ));
+        }
+        if let Some(rate) = self.routing.and_then(|r| r.hit_rate()) {
+            lines.push(format!(
+                "Routed experts already in memory: {:.0}%",
+                rate * 100.0
+            ));
+        }
+        if let Some(s) = health.and_then(|h| h.scheduler.as_ref()) {
+            lines.push(format!("Queue: {} active, {} waiting", s.active, s.queued));
+        }
+        lines.join("\n")
+    }
 }
 
 fn ratio(part: u64, total: u64) -> f64 {
@@ -551,6 +611,15 @@ mod tests {
     }
 
     #[test]
+    fn summary_mentions_offline_error() {
+        let status = ColibriStatus::unreachable("http://x/v1", "glm", "refused".into());
+        assert_eq!(
+            status.summary(),
+            "Colibri is offline (http://x/v1): refused"
+        );
+    }
+
+    #[test]
     fn status_state_from_scheduler() {
         let health = Health {
             status: "ok".into(),
@@ -573,5 +642,8 @@ mod tests {
         assert_eq!(status.nvme.experts_on_disk, 70);
         assert!((status.nvme.disk_ratio - 0.7).abs() < 1e-9);
         assert!(status.reachable);
+        let summary = status.summary();
+        assert!(summary.starts_with("Colibri generating, model glm-5.2-colibri"));
+        assert!(summary.contains("Experts: 0 VRAM, 30 RAM, 70 on NVMe (70% streamed)"));
     }
 }

@@ -2,10 +2,13 @@ pub mod agent;
 pub mod cache;
 pub mod colibri;
 pub mod config;
+pub mod env;
 pub mod error;
 pub mod memory;
 pub mod prompt;
+pub mod queue;
 pub mod telemetry;
+pub mod text;
 pub mod tools;
 pub mod types;
 
