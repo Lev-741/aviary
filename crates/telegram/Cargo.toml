@@ -1,0 +1,22 @@
+[package]
+name = "aviary-telegram"
+description = "Telegram bot that answers with a local Colibri model"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "aviary-telegram"
+path = "src/main.rs"
+
+[dependencies]
+aviary-core.workspace = true
+teloxide.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dotenvy.workspace = true

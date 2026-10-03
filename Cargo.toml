@@ -4,10 +4,14 @@ members = [
     "crates/core",
     "crates/cli",
     "crates/desktop",
+    "crates/telegram",
+    "crates/discord",
 ]
 default-members = [
     "crates/core",
     "crates/cli",
+    "crates/telegram",
+    "crates/discord",
 ]
 
 [workspace.package]
