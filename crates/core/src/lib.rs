@@ -1,0 +1,21 @@
+pub mod agent;
+pub mod cache;
+pub mod colibri;
+pub mod config;
+pub mod error;
+pub mod memory;
+pub mod prompt;
+pub mod telemetry;
+pub mod tools;
+pub mod types;
+
+pub use agent::{AgentEvent, AgentOptions, AgentReply, ColibriAgent};
+pub use cache::{CacheStats, ExpertCache, SlotLease};
+pub use colibri::ColibriClient;
+pub use config::ColibriConfig;
+pub use error::{Error, Result};
+pub use memory::Memory;
+pub use prompt::{ModelFamily, ModelProfile, PromptBuilder};
+pub use telemetry::{ColibriStatus, Health, RoutingStats, StreamingState};
+pub use tools::{Tool, ToolRegistry, ToolSettings};
+pub use types::{ChatMessage, Role, ToolCall, ToolDefinition, Usage};
