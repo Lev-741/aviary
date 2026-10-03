@@ -143,7 +143,7 @@ impl Handler {
         }
     }
 
-    async fn answer(&self, ctx: &Context, msg: &Message, prompt: String) -> serenity::Result<()> {
+    async fn answer(&self, ctx: &Context, msg: &Message, prompt: String) -> Result<()> {
         let key = memory_key(msg.author.id.get());
         let queued = self.queue.is_busy(&key);
         let mut placeholder = msg
