@@ -28,25 +28,25 @@ impl Sandbox {
             self.root.join(requested)
         };
         let normalized = normalize(&joined);
-        let real = match normalized.canonicalize() {
-            Ok(path) => path,
-            Err(_) => {
-                let parent = normalized
-                    .parent()
-                    .and_then(|p| p.canonicalize().ok())
-                    .ok_or_else(|| {
-                        Error::tool(tool, format!("{} does not exist", requested.display()))
-                    })?;
-                parent.join(normalized.file_name().unwrap_or_default())
-            }
-        };
-        if !real.starts_with(&self.root) {
-            return Err(Error::tool(
+        let real = normalized.canonicalize().ok().or_else(|| {
+            let parent = normalized.parent()?.canonicalize().ok()?;
+            Some(parent.join(normalized.file_name()?))
+        });
+        let outside = || {
+            Error::tool(
                 tool,
                 format!("{} is outside the workspace", requested.display()),
-            ));
+            )
+        };
+        match real {
+            Some(path) if path.starts_with(&self.root) => Ok(path),
+            Some(_) => Err(outside()),
+            None if !normalized.starts_with(&self.root) => Err(outside()),
+            None => Err(Error::tool(
+                tool,
+                format!("{} does not exist", requested.display()),
+            )),
         }
-        Ok(real)
     }
 
     fn display(&self, path: &Path) -> String {
@@ -267,6 +267,22 @@ mod tests {
         assert!(err.to_string().contains("outside the workspace"));
         let err = read.call(json!({"path": "/etc/passwd"})).await.unwrap_err();
         assert!(err.to_string().contains("outside the workspace"));
+    }
+
+    #[tokio::test]
+    async fn missing_paths_outside_are_still_outside() {
+        let dir = tempfile::tempdir().unwrap();
+        let read = ReadFileTool::new(dir.path());
+        let err = read
+            .call(json!({"path": "../../no/such/dir/file"}))
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("outside the workspace"));
+        let err = read
+            .call(json!({"path": "missing/deeper/file"}))
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("does not exist"));
     }
 
     #[cfg(unix)]
